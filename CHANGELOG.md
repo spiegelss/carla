@@ -19,6 +19,8 @@
   * Updated OpenDriveActor to use the new Waypoint API
   * Fixed wrong units in VehiclePhysicsControl's center of mass
   * Several optimizations to the RPC server, now supports a bigger load of async messages
+  * Physics:
+    - Added Friction Trigger Boxes for simulating, for example, slippery surfaces in any region of the map defined by users.
 
 ## CARLA 0.9.5
 
