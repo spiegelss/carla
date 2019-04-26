@@ -4,6 +4,7 @@
     - Added optional parameter to show more details about a recorder file (related to `show_recorder_file_info.py`)
     - Added playback speed (slow/fast motion) for the replayer
     - We can use an absolute path for the recorded files (to choose where to 'write to' or 'read from')
+  * Recorded system is documented, and binary file system is described.
   * Fixed Lidar effectiveness bug in manual_control.py
   * Added C++ client example using LibCarla
 
