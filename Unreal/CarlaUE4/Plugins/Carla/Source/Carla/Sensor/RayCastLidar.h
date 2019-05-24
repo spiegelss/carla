@@ -21,39 +21,47 @@
 UCLASS()
 class CARLA_API ARayCastLidar : public ASensor
 {
-  GENERATED_BODY()
+	GENERATED_BODY()
 
-  using FLidarMeasurement = carla::sensor::s11n::LidarMeasurement;
+		using FLidarMeasurement = carla::sensor::s11n::LidarMeasurement;
 
 public:
 
-  static FActorDefinition GetSensorDefinition();
 
-  ARayCastLidar(const FObjectInitializer &ObjectInitializer);
+	static bool GetObstacle(const AActor* actor, const FVector& start, const FVector& end,
+		FHitResult& hit, const AActor* ignore_actor = nullptr, ECollisionChannel collision_channel = ECC_Visibility);
 
-  void Set(const FActorDescription &Description) override;
+	static FActorDefinition GetSensorDefinition();
 
-  void Set(const FLidarDescription &LidarDescription);
+	ARayCastLidar(const FObjectInitializer &ObjectInitializer);
+
+	void Set(const FActorDescription &Description) override;
+
+	void Set(const FLidarDescription &LidarDescription);
 
 protected:
 
-  virtual void Tick(float DeltaTime) override;
+	virtual void Tick(float DeltaTime) override;
 
 private:
 
-  /// Creates a Laser for each channel.
-  void CreateLasers();
+	/// Creates a Laser for each channel.
+	void CreateLasers();
 
-  /// Updates LidarMeasurement with the points read in DeltaTime.
-  void ReadPoints(float DeltaTime);
+	/// Updates LidarMeasurement with the points read in DeltaTime.
+	void ReadPoints(float DeltaTime);
 
-  /// Shoot a laser ray-trace, return whether the laser hit something.
-  bool ShootLaser(uint32 Channel, float HorizontalAngle, FVector &Point) const;
+	/// Shoot a laser ray-trace, return whether the laser hit something.
+	bool ShootLaser(uint32 Channel, float HorizontalAngle, FVector &Point) const;
 
-  UPROPERTY(EditAnywhere)
-  FLidarDescription Description;
+	UPROPERTY(EditAnywhere)
+		FLidarDescription Description;
 
-  TArray<float> LaserAngles;
+	TArray<float> LaserAngles;
 
-  FLidarMeasurement LidarMeasurement;
+	FLidarMeasurement LidarMeasurement;
+
+	AActor* actor_;
+
+
 };
