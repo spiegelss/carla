@@ -18,6 +18,7 @@
 //Variables for storing the labels
 FName actor_temp;
 std::string actor_string;
+std::vector<float> string_ascii;
 
 //exception counter
 int i;
