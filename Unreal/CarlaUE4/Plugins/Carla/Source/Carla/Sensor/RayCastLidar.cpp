@@ -9,7 +9,6 @@
 #include <EngineGlobals.h>
 #include <Runtime/Engine/Classes/Engine/Engine.h>
 #include "Carla/Actor/ActorBlueprintFunctionLibrary.h"
-#include "C:/CSVWriter.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/CollisionProfile.h"
 #include "Runtime/Engine/Classes/Kismet/KismetMathLibrary.h"
@@ -20,24 +19,9 @@ FName actor_temp;
 std::string actor_string;
 std::vector<float> string_ascii;
 
+
 //exception counter
 int i;
-
-
-
-bool ARayCastLidar::GetObstacle(const AActor * actor, const FVector & start, const FVector & end, FHitResult & hit, const AActor * ignore_actor, ECollisionChannel collision_channel)
-{
-	hit = FHitResult(ForceInit);
-
-	FCollisionQueryParams TraceParams = FCollisionQueryParams(FName(TEXT("Laser_Trace")), true);
-	TraceParams.bTraceComplex = true;
-	TraceParams.bReturnPhysicalMaterial = false;
-	TraceParams.AddIgnoredActor(actor);
-	if (ignore_actor != nullptr)
-		TraceParams.AddIgnoredActor(ignore_actor);
-
-	return actor->GetWorld()->LineTraceSingleByChannel(hit, start, end, collision_channel, TraceParams);
-}
 
 FActorDefinition ARayCastLidar::GetSensorDefinition()
 {
@@ -122,7 +106,6 @@ void ARayCastLidar::ReadPoints(const float DeltaTime)
 	const float AngleDistanceOfLaserMeasure = AngleDistanceOfTick / PointsToScanWithOneLaser;
 
 	LidarMeasurement.Reset(ChannelCount * PointsToScanWithOneLaser);
-
 	for (auto Channel = 0u; Channel < ChannelCount; ++Channel)
 	{
 		for (auto i = 0u; i < PointsToScanWithOneLaser; ++i)
@@ -134,8 +117,6 @@ void ARayCastLidar::ReadPoints(const float DeltaTime)
 			const float Angle = CurrentHorizontalAngle + AngleDistanceOfLaserMeasure * i;
 			if (ShootLaser(Channel, Angle, Point))
 			{
-
-
 				LidarMeasurement.WritePoint(Channel, Point, actor_string);
 			}
 		}
@@ -191,7 +172,7 @@ bool ARayCastLidar::ShootLaser(const uint32 Channel, const float HorizontalAngle
 		{
 			i++;
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("F %d"), i));
-			actor_string = "Fetch Failed";
+			actor_string = "Label Fetch Failed";
 		}
 
 		if (Description.ShowDebugPoints)
