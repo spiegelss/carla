@@ -79,6 +79,10 @@ import math
 import random
 import re
 import weakref
+import pandas as pd
+
+
+
 
 try:
     import pygame
@@ -123,6 +127,7 @@ except ImportError:
 # ==============================================================================
 # -- Global functions ----------------------------------------------------------
 # ==============================================================================
+
 
 
 def find_weather_presets():
@@ -664,8 +669,7 @@ class CameraManager(object):
         self.hud = hud
         self.recording = False
         self._camera_transforms = [
-            carla.Transform(carla.Location(x=-5.5, z=2.8), carla.Rotation(pitch=-15)),
-            carla.Transform(carla.Location(x=1.6, z=1.7))]
+            carla.Transform(carla.Location(x=0.8, z=1.8))]
         self.transform_index = 1
         self.sensors = [
             ['sensor.camera.rgb', cc.Raw, 'Camera RGB'],
@@ -678,13 +682,27 @@ class CameraManager(object):
             ['sensor.lidar.ray_cast', None, 'Lidar (Ray-Cast)']]
         world = self._parent.get_world()
         bp_library = world.get_blueprint_library()
+
+        '# uncomment the lines below to obtain the asset list of the current UE4 level'
+        #str1 = str(bp_library)
+        #print(str1)
+        #str1 = str1.split(',')
+        #bp_df = pd.DataFrame(str1)
+        #bp_df.to_csv("C:/test/plc_labels/bp_library_t.csv", index=None)
+
         for item in self.sensors:
             bp = bp_library.find(item[0])
             if item[0].startswith('sensor.camera'):
                 bp.set_attribute('image_size_x', str(hud.dim[0]))
                 bp.set_attribute('image_size_y', str(hud.dim[1]))
             elif item[0].startswith('sensor.lidar'):
+                #lidar attributes
+                bp.set_attribute('channels', '64')
                 bp.set_attribute('range', '5000')
+                bp.set_attribute('points_per_second', '100000')
+                bp.set_attribute('rotation_frequency', '10')
+                bp.set_attribute('upper_fov', '10')
+                bp.set_attribute('lower_fov', '-30')
             item.append(bp)
         self.index = None
 
@@ -724,13 +742,46 @@ class CameraManager(object):
             display.blit(self.surface, (0, 0))
 
     @staticmethod
+
+
     def _parse_image(weak_self, image):
         self = weak_self()
         if not self:
             return
         if self.sensors[self.index][0].startswith('sensor.lidar'):
-            points = np.frombuffer(image.raw_data, dtype=np.dtype('f4'))
+            channels = image.channels
+            x = 0
+            pointcount = 0
+            for i in range(0, channels):
+                pointcount += image.get_point_count(i)
+                totalpoints = pointcount*3
+            #print(totalpoints)
+            print(image.horizontal_angle)
+            complete = np.frombuffer(image.raw_data, dtype=np.dtype('f4'), count=-1)
+            points = np.frombuffer(image.raw_data, dtype=np.dtype('f4'), count=totalpoints)
+            labels_ascii = np.frombuffer(image.raw_data, dtype=np.dtype('f4'),  offset=totalpoints*4)
+            bigstring = ''.join(chr(i) for i in labels_ascii)
+            bigstring = bigstring.split(',')
+            labels_df = pd.DataFrame(bigstring)
+            #print(labels_df)
+
+            #for debugging ( interpretting the buffer
+
+            #np.savetxt("C:/test/C{}.txt".format(image.timestamp), complete)
+            #np.savetxt("C:/test/P{}.txt".format(image.timestamp), points)
+            #np.savetxt("C:/test/L{}.txt".format(image.timestamp), labels_ascii, fmt='%f')
+
             points = np.reshape(points, (int(points.shape[0] / 3), 3))
+
+            '# putting into PANDAS dataframes'
+            if len(points) > 0:
+                x = pd.DataFrame(data=np.float_(points), columns=["x", "y", "z"])
+                x["labels"] = labels_df
+                #print(x)
+                if self.recording:
+                    x.to_csv("C:/test/plc_labels/{}.csv".format(image.frame_number), index=None)
+
+
             lidar_data = np.array(points[:, :2])
             lidar_data *= min(self.hud.dim) / 100.0
             lidar_data += (0.5 * self.hud.dim[0], 0.5 * self.hud.dim[1])
@@ -748,8 +799,10 @@ class CameraManager(object):
             array = array[:, :, :3]
             array = array[:, :, ::-1]
             self.surface = pygame.surfarray.make_surface(array.swapaxes(0, 1))
-        if self.recording:
-            image.save_to_disk('_out/%08d' % image.frame_number)
+        #if self.recording:
+            #image.save_to_disk('C:/test/ply/%08d' % image.frame_number)
+
+
 
 
 # ==============================================================================
