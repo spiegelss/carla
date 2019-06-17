@@ -62,6 +62,4 @@ private:
 	FLidarMeasurement LidarMeasurement;
 
 	AActor* actor_;
-
-
 };

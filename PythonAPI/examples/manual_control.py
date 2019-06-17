@@ -73,13 +73,13 @@ from carla import ColorConverter as cc
 
 import argparse
 import collections
-import datetime
 import logging
 import math
 import random
 import re
 import weakref
 import pandas as pd
+import datetime
 
 
 
@@ -122,6 +122,37 @@ try:
     import numpy as np
 except ImportError:
     raise RuntimeError('cannot import numpy, make sure numpy package is installed')
+
+# ==============================================================================
+# -- Dataset Folder Path----------------------------------------------------------
+# ==============================================================================
+
+'''Dataset folder created at the time when the client is connected'''
+
+currentDT = datetime.datetime.now()
+Dataset_path = "D:/Carla_Lidar/" + str(currentDT.strftime("%Y-%m-%d %H-%M-%S"))
+Dataset_full_path = "D:/Carla_Lidar/" + str(currentDT.strftime("%Y-%m-%d %H-%M-%S")) + "/{}.csv"
+try:
+    os.makedirs(Dataset_path, exist_ok=True)
+except FileExistsError:
+    # directory already exists
+    pass
+
+# ==============================================================================
+# -- Lidar Parameters ----------------------------------------------------------
+# ==============================================================================
+
+LidarParams = ['64', '5000', '5000', '5', '10', '-30']
+
+'''
+PARAMETERS ORDER of the LidarParams List
+0, num_of_channels = '64'
+1, range_of_scan = '5000'
+2, points_per_sec = ''21000''
+3, rotation_freq = '10'
+4, upper_fov = '10'
+5, lower_fov = '-30'
+'''
 
 
 # ==============================================================================
@@ -194,6 +225,7 @@ class World(object):
         self.collision_sensor = CollisionSensor(self.player, self.hud)
         self.lane_invasion_sensor = LaneInvasionSensor(self.player, self.hud)
         self.gnss_sensor = GnssSensor(self.player)
+
         self.camera_manager = CameraManager(self.player, self.hud)
         self.camera_manager.transform_index = cam_pos_index
         self.camera_manager.set_sensor(cam_index, notify=False)
@@ -229,6 +261,8 @@ class World(object):
         for actor in actors:
             if actor is not None:
                 actor.destroy()
+
+
 
 # ==============================================================================
 # -- KeyboardControl -----------------------------------------------------------
@@ -273,6 +307,7 @@ class KeyboardControl(object):
                     world.camera_manager.next_sensor()
                 elif event.key > K_0 and event.key <= K_9:
                     world.camera_manager.set_sensor(event.key - 1 - K_0)
+                    print(event.key - 1 - K_0)
                 elif event.key == K_r and not (pygame.key.get_mods() & KMOD_CTRL):
                     world.camera_manager.toggle_recording()
                 elif event.key == K_r and (pygame.key.get_mods() & KMOD_CTRL):
@@ -600,7 +635,6 @@ class CollisionSensor(object):
         if len(self.history) > 4000:
             self.history.pop(0)
 
-
 # ==============================================================================
 # -- LaneInvasionSensor --------------------------------------------------------
 # ==============================================================================
@@ -655,7 +689,6 @@ class GnssSensor(object):
         self.lat = event.latitude
         self.lon = event.longitude
 
-
 # ==============================================================================
 # -- CameraManager -------------------------------------------------------------
 # ==============================================================================
@@ -664,6 +697,7 @@ class GnssSensor(object):
 class CameraManager(object):
     def __init__(self, parent_actor, hud):
         self.sensor = None
+        self.camera = None
         self.surface = None
         self._parent = parent_actor
         self.hud = hud
@@ -689,7 +723,7 @@ class CameraManager(object):
         #str1 = str1.split(',')
         #bp_df = pd.DataFrame(str1)
         #bp_df.to_csv("C:/test/plc_labels/bp_library_t.csv", index=None)
-
+        print(self.sensors[6][0])
         for item in self.sensors:
             bp = bp_library.find(item[0])
             if item[0].startswith('sensor.camera'):
@@ -697,12 +731,12 @@ class CameraManager(object):
                 bp.set_attribute('image_size_y', str(hud.dim[1]))
             elif item[0].startswith('sensor.lidar'):
                 #lidar attributes
-                bp.set_attribute('channels', '64')
-                bp.set_attribute('range', '5000')
-                bp.set_attribute('points_per_second', '100000')
-                bp.set_attribute('rotation_frequency', '10')
-                bp.set_attribute('upper_fov', '10')
-                bp.set_attribute('lower_fov', '-30')
+                bp.set_attribute('channels', LidarParams[0])
+                bp.set_attribute('range', LidarParams[1])
+                bp.set_attribute('points_per_second', LidarParams[2])
+                bp.set_attribute('rotation_frequency', LidarParams[3])
+                bp.set_attribute('upper_fov', LidarParams[4])
+                bp.set_attribute('lower_fov', LidarParams[5])
             item.append(bp)
         self.index = None
 
@@ -712,12 +746,14 @@ class CameraManager(object):
 
     def set_sensor(self, index, notify=True):
         index = index % len(self.sensors)
+        print(self.sensors[index][0])
         needs_respawn = True if self.index is None \
             else self.sensors[index][0] != self.sensors[self.index][0]
         if needs_respawn:
             if self.sensor is not None:
                 self.sensor.destroy()
                 self.surface = None
+
             self.sensor = self._parent.get_world().spawn_actor(
                 self.sensors[index][-1],
                 self._camera_transforms[self.transform_index],
@@ -725,7 +761,8 @@ class CameraManager(object):
             # We need to pass the lambda a weak reference to self to avoid
             # circular reference.
             weak_self = weakref.ref(self)
-            self.sensor.listen(lambda image: CameraManager._parse_image(weak_self, image))
+            self.sensor.listen(lambda data: CameraManager._parse_image(weak_self, data))
+
         if notify:
             self.hud.notification(self.sensors[index][2])
         self.index = index
@@ -742,30 +779,35 @@ class CameraManager(object):
             display.blit(self.surface, (0, 0))
 
     @staticmethod
-
-
     def _parse_image(weak_self, image):
+
         self = weak_self()
         if not self:
             return
         if self.sensors[self.index][0].startswith('sensor.lidar'):
+            '''
+            # create new camera sensor
+            world = self._parent.get_world()
+            bp_library = world.get_blueprint_library()
+            camera_bp = bp_library.find('sensor.camera.rgb')
+            camera_transform = carla.Transform(carla.Location(x=0.5, z=1.8))
+            camera_rgb = world.spawn_actor(camera_bp, camera_transform, attach_to=self._parent)
+            '''
+
             channels = image.channels
-            x = 0
+            ego_pose = self._parent.get_transform()
             pointcount = 0
             for i in range(0, channels):
                 pointcount += image.get_point_count(i)
-                totalpoints = pointcount*3
-            #print(totalpoints)
-            print(image.horizontal_angle)
-            complete = np.frombuffer(image.raw_data, dtype=np.dtype('f4'), count=-1)
+            totalpoints = pointcount*3
+            fullbuffer = np.frombuffer(image.raw_data, dtype=np.dtype('f4'), count=-1)
             points = np.frombuffer(image.raw_data, dtype=np.dtype('f4'), count=totalpoints)
             labels_ascii = np.frombuffer(image.raw_data, dtype=np.dtype('f4'),  offset=totalpoints*4)
             bigstring = ''.join(chr(i) for i in labels_ascii)
             bigstring = bigstring.split(',')
             labels_df = pd.DataFrame(bigstring)
-            #print(labels_df)
 
-            #for debugging ( interpretting the buffer
+            'for debugging ( interpretting the buffer)'
 
             #np.savetxt("C:/test/C{}.txt".format(image.timestamp), complete)
             #np.savetxt("C:/test/P{}.txt".format(image.timestamp), points)
@@ -775,23 +817,41 @@ class CameraManager(object):
 
             '# putting into PANDAS dataframes'
             if len(points) > 0:
-                x = pd.DataFrame(data=np.float_(points), columns=["x", "y", "z"])
+                x = pd.DataFrame(data=np.float16(points), columns=["x", "y", "z"])
                 x["labels"] = labels_df
-                #print(x)
-                if self.recording:
-                    x.to_csv("C:/test/plc_labels/{}.csv".format(image.frame_number), index=None)
+                x.loc[x.index[0], 'ego_pose'] = str(ego_pose)
+                x.loc[x.index[0], 'Lidar_Params'] = "channels: " + LidarParams[0]
+                x.loc[x.index[1], 'Lidar_Params'] = "range: " + LidarParams[1]
+                x.loc[x.index[2], 'Lidar_Params'] = "pps: " + LidarParams[2]
+                x.loc[x.index[3], 'Lidar_Params'] = "freq: " + LidarParams[3]
+                x.loc[x.index[4], 'Lidar_Params'] = "u_fov: " + LidarParams[4]
+                x.loc[x.index[5], 'Lidar_Params'] = "l_fov: " + LidarParams[5]
 
+                if self.recording:
+
+                    x.to_csv(Dataset_full_path.format(image.frame_number), index=None)
+                    #camera_rgb.listen(lambda data: data.save_to_disk('C:/test/plc_labels/%06d.png' % data.frame_number))
 
             lidar_data = np.array(points[:, :2])
+            print(1)
+            print(self.hud.dim)
             lidar_data *= min(self.hud.dim) / 100.0
+           # print(2)
+            #print(lidar_data)
             lidar_data += (0.5 * self.hud.dim[0], 0.5 * self.hud.dim[1])
+            #print(3)
+           # print(lidar_data)
+
             lidar_data = np.fabs(lidar_data)  # pylint: disable=E1111
             lidar_data = lidar_data.astype(np.int32)
             lidar_data = np.reshape(lidar_data, (-1, 2))
             lidar_img_size = (self.hud.dim[0], self.hud.dim[1], 3)
             lidar_img = np.zeros((lidar_img_size), dtype = int)
-            lidar_img[tuple(lidar_data.T)] = (255, 255, 255)
+            lidar_img[tuple(lidar_data.T)] = (255, 255, 220)
+            #print(4)
+           # print(tuple(lidar_data.T))
             self.surface = pygame.surfarray.make_surface(lidar_img)
+            #camera_rgb.destroy()
         else:
             image.convert(self.sensors[self.index][1])
             array = np.frombuffer(image.raw_data, dtype=np.dtype("uint8"))
@@ -799,8 +859,8 @@ class CameraManager(object):
             array = array[:, :, :3]
             array = array[:, :, ::-1]
             self.surface = pygame.surfarray.make_surface(array.swapaxes(0, 1))
-        #if self.recording:
-            #image.save_to_disk('C:/test/ply/%08d' % image.frame_number)
+        if self.recording:
+            image.save_to_disk('C:/test/ply/%08d' % image.frame_number)
 
 
 

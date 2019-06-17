@@ -18,6 +18,8 @@
 FName actor_temp;
 std::string actor_string;
 std::vector<float> string_ascii;
+std::vector<float> angles;
+TArray<UStaticMeshComponent*> Components;
 
 
 //exception counter
@@ -40,6 +42,7 @@ ARayCastLidar::ARayCastLidar(const FObjectInitializer& ObjectInitializer)
 	MeshComp->PostPhysicsComponentTick.bCanEverTick = false;
 	RootComponent = MeshComp;
 }
+
 
 void ARayCastLidar::Set(const FActorDescription &ActorDescription)
 {
@@ -88,7 +91,7 @@ void ARayCastLidar::ReadPoints(const float DeltaTime)
 	const uint32 PointsToScanWithOneLaser =
 		FMath::RoundHalfFromZero(
 			Description.PointsPerSecond * DeltaTime / float(ChannelCount));
-
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("F %d"), PointsToScanWithOneLaser));
 	if (PointsToScanWithOneLaser <= 0)
 	{
 		UE_LOG(
@@ -103,27 +106,29 @@ void ARayCastLidar::ReadPoints(const float DeltaTime)
 
 	const float CurrentHorizontalAngle = LidarMeasurement.GetHorizontalAngle();
 	const float AngleDistanceOfTick = Description.RotationFrequency * 360.0f * DeltaTime;
+	
 	const float AngleDistanceOfLaserMeasure = AngleDistanceOfTick / PointsToScanWithOneLaser;
 
 	LidarMeasurement.Reset(ChannelCount * PointsToScanWithOneLaser);
+	auto AngularRes = 360.0f / (Description.PointsPerSecond / Description.RotationFrequency);
 	for (auto Channel = 0u; Channel < ChannelCount; ++Channel)
 	{
-		for (auto i = 0u; i < PointsToScanWithOneLaser; ++i)
+		for (float i = 0; i < 360; i += AngularRes)
 		{
+			
 			FVector Point;
 			std::vector<std::string> Label;
 
 
-			const float Angle = CurrentHorizontalAngle + AngleDistanceOfLaserMeasure * i;
+			const float Angle = CurrentHorizontalAngle + i;//AngleDistanceOfLaserMeasure * i;
 			if (ShootLaser(Channel, Angle, Point))
 			{
-				LidarMeasurement.WritePoint(Channel, Point, actor_string);
+				LidarMeasurement.WritePoint(Channel, Point, actor_string, Angle);
 			}
 		}
 	}
-
 	const float HorizontalAngle = std::fmod(CurrentHorizontalAngle + AngleDistanceOfTick, 360.0f);
-	LidarMeasurement.SetHorizontalAngle(HorizontalAngle);
+	LidarMeasurement.SetHorizontalAngle(HorizontalAngle);;
 }
 
 bool ARayCastLidar::ShootLaser(const uint32 Channel, const float HorizontalAngle, FVector &XYZ) const
@@ -163,16 +168,16 @@ bool ARayCastLidar::ShootLaser(const uint32 Channel, const float HorizontalAngle
 		//lidar return actor
 		if (HitInfo.Actor.Get() != nullptr)
 		{
-			actor_temp = HitInfo.Actor.Get()->GetFName();
+			FString actor_Fstring = HitInfo.Actor->GetActorLabel();
 			//Fname to Fstring and Fstring to std::string
-			FString actor_Fstring = actor_temp.ToString();
+			//FString actor_Fstring = actor_temp.ToString();
 			actor_string = std::string(TCHAR_TO_UTF8(*actor_Fstring));
 		}
 		else
 		{
 			i++;
-			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("F %d"), i));
-			actor_string = "Label Fetch Failed";
+			//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("F %d"), i));
+			actor_string = "Fetch Failed";
 		}
 
 		if (Description.ShowDebugPoints)
