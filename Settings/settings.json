@@ -1,0 +1,13 @@
+[
+	{
+		"Channels": 			"64",
+		"PointsPerSecond":		"20000",
+		"Range":				"5000",
+		"RotationFrequency":	"5",
+		"UpperFOV":				"10",
+		"LowerFOV":				"-30",
+		"FileLocation":			"D:/Carla_LidarData/",
+		"ImageHeight":			"800",	
+		"ImageWidth":			"600"
+	}
+]
