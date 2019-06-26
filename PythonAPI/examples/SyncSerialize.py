@@ -56,7 +56,7 @@ for setting in settings_dict:
     LidarParams[3] = setting['RotationFrequency']
     LidarParams[4] = setting['UpperFOV']
     LidarParams[5] = setting['LowerFOV']
-print("Loaded Lidar Config")
+print("Loaded Configuration from settings.json")
 
 currentDT = datetime.datetime.now()
 Dataset_path = FileLocation + str(currentDT.strftime("%Y-%m-%d %H-%M-%S"))
@@ -89,15 +89,15 @@ def draw_lidar(surface, lidar, vehicle):
         x.loc[x.index[0], 'ego_X,Y,Z'] = np.float16(ego_trans.location.x)
         x.loc[x.index[1], 'ego_X,Y,Z'] = np.float16(ego_trans.location.y)
         x.loc[x.index[2], 'ego_X,Y,Z'] = np.float16(ego_trans.location.z)
-        x.loc[x.index[0], 'ego_rot_P,Y,R'] =np.float16(ego_trans.rotation.pitch)
+        x.loc[x.index[0], 'ego_rot_P,Y,R'] = np.float16(ego_trans.rotation.pitch)
         x.loc[x.index[1], 'ego_rot_P,Y,R'] = np.float16(ego_trans.rotation.yaw)
         x.loc[x.index[2], 'ego_rot_P,Y,R'] = np.float16(ego_trans.rotation.roll)
-        x.loc[x.index[0], 'Lidar_C,R,P,F,uF,lF'] = LidarParams[0]
-        x.loc[x.index[1], 'Lidar_C,R,P,F,uF,lF'] = LidarParams[1]
-        x.loc[x.index[2], 'Lidar_C,R,P,F,uF,lF'] = LidarParams[2]
-        x.loc[x.index[3], 'Lidar_C,R,P,F,uF,lF'] = LidarParams[3]
-        x.loc[x.index[4], 'Lidar_C,R,P,F,uF,lF'] = LidarParams[4]
-        x.loc[x.index[5], 'Lidar_C,R,P,F,uF,lF'] = LidarParams[5]
+        x.loc[x.index[0], 'Lidar_C,P,R,F,uF,lF'] = LidarParams[0]
+        x.loc[x.index[1], 'Lidar_C,P,R,F,uF,lF'] = LidarParams[1]
+        x.loc[x.index[2], 'Lidar_C,P,R,F,uF,lF'] = LidarParams[2]
+        x.loc[x.index[3], 'Lidar_C,P,R,F,uF,lF'] = LidarParams[3]
+        x.loc[x.index[4], 'Lidar_C,P,R,F,uF,lF'] = LidarParams[4]
+        x.loc[x.index[5], 'Lidar_C,P,R,F,uF,lF'] = LidarParams[5]
         x.to_csv(Dataset_full_path.format(lidar.frame_number), index=None)
 
 def draw_image(surface, image):
