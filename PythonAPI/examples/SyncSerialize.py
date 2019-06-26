@@ -7,6 +7,7 @@
 # For a copy, see <https://opensource.org/licenses/MIT>.
 
 #This script is used to obtain Pointwise Labelled point cloud along with the RGB images at each time stamp.
+#The EGO vehicle is a Harley Davidson
 
 import glob
 import os
