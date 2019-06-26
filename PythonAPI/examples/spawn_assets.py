@@ -5,6 +5,8 @@
 #
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
+#
+#This script is used for dropping assets along the a lane section at random locations.
 
 import glob
 import os
