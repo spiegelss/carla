@@ -1,3 +1,5 @@
+#usage: Change the mypath variable to the folder which has the csv and images and run each line
+
 import pandas as pd
 import os
 from os import listdir
@@ -9,7 +11,7 @@ import glob
 
 #Keywords for mapping assets and Target Classes
 
-Car = ["PedestrianOnsidecar", "Audi", "Beetle", "Bmw",  "Chevrolet", "Citroen", "DodgeCharge", "Jeep", "Leon", "Lincoln", "Mercedes", "Mini", "Mustang", "Nissan", "Tazzari", "Tesla", "Toyota", "Volkswagen", "Wheeled", "Van" ]
+Car = ["PedestrianOnsidecar", "Audi", "Beetle", "Bmw",  "Chevrolet", "Citroen", "DodgeCharge", "Jeep", "Leon", "Lincoln", "Mercedes", "Mini", "Mustang", "Nissan", "Tazzari", "Tesla", "Toyota", "Volkswagen", "Wheeled", "Van" ] 
 Motorbicycle = [ "Harley", "Kawasakininja",  "Vespa", "Yamaha", "4WheeledBike"]
 Bicycle = ["CrossBike","LeisureBike", "RoadBike"]
 Truck = ["Truck", "CarlaCola" ]
@@ -24,18 +26,18 @@ Prop = ["Prop", "MapTable", "LargePlantPot", "plant_pit", "Wire", "HighvoltageCa
 Building = ["Hall","NewBluePrint","BP_CarlaCola","Kiosk", "Shop","Mall","wall","Parkwall", "SecFence",  "Windmill", "Building", "House", "Terraced", "Skycraper","Skyscraper", "Office", "Mansion", "Ladder", "GasStation", "Garage", "farmHouse", "Church", "Block", "Apartment", "AirConditioner", "Stairs"]
 Vegetation = ["Grass", "Landscape","Maple", "Plant","Tree", "Pot", "CoconutPalm", "Palm", "Veg", "amapola", "walnut", "Billboard", "Acacia", "Pine", "Bush", "Cypress", "Trunk", "Leaf", "Grassleaf", "Platanus", "Leaves", "Hedge", "Acer", "Saccharum", "DatePalm", "Mexican_Fan_Palm", "Arbusto", "Cherry_Bark", "Fir_Bark ", "Japanese_Maple", "Pine_leaf", "Platanus_Ash", "Quercus_Rubra", "Sassafras", "Willow", "Twig", "Branch", "Scots_pine_trunk", "White_ASh_Trunk", "PlantCorn", "TeethOfthelion", " WheatField", "Rushes", "Beech"]
 Environment = ["Generic_stone", "Rock"]
-
+Unlabelled = ["DefaultPawn", "Fetch Failed"]
 
 onlyfiles = []
-mypath = "D:/Carla_LidarData/2019-06-17 15-47-12/"
+mypath = "D:/Carla_LidarData/2019-06-26 13-56-57/"
 os.chdir(mypath)
 for file in glob.glob("*.csv"):
     onlyfiles.append(mypath + file)
 onlyfiles
-
 for y in onlyfiles:
     actuallist = pd.read_csv(y)
-    actuallist.loc[actuallist['labels'].str.contains("Fetch Failed", case=False), 'labels'] = '255'
+    for x in Unlabelled:
+        actuallist.loc[actuallist['labels'].str.contains(x, case=False), 'labels'] = '255'
     for x in Car:
         actuallist.loc[actuallist['labels'].str.contains(x, case=False), 'labels'] = '1'
     for x in Motorbicycle:
